@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CineBook — Movie Ticket Booking</title>
+<style>
+  :root{
+    --bg:#0f1220; --bg2:#161a30; --card:#1c2140; --card2:#262c50; --line:#3a4368;
+    --accent:#f5b942; --accent2:#e8871e; --text:#eef0f7; --muted:#9aa1c0;
+    --green:#2ecc71; --red:#e74c3c; --blue:#5da0ff;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+  body{background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+  header{background:linear-gradient(90deg,#1a1f35,#2a1f35);padding:16px 28px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 12px rgba(0,0,0,.4);position:sticky;top:0;z-index:20;flex-wrap:wrap;gap:12px}
+  header h1{color:var(--accent);font-size:1.4rem;letter-spacing:1px}
+  header h1 span{color:#fff}
+  nav.breadcrumb{display:flex;align-items:center;gap:6px;font-size:.85rem}
+  nav.breadcrumb .crumb{padding:5px 12px;border-radius:20px;background:var(--card);color:var(--muted);transition:.2s;cursor:pointer}
+  nav.breadcrumb .crumb.active{background:var(--accent);color:#1a1a1a;font-weight:700}
+  nav.breadcrumb .crumb.done{background:#2ecc7122;color:var(--green)}
+  nav.breadcrumb .sep{color:var(--muted);font-size:.7rem}
+  nav.breadcrumb .crumb:focus-visible{box-shadow:0 0 0 2px var(--blue)}
+  main{max-width:1080px;margin:0 auto;padding:24px 20px 80px}
+
+  .panel{background:var(--card);border-radius:14px;padding:24px;margin-bottom:20px;border:1px solid rgba(255,255,255,.05)}
+  h2{font-size:1.25rem;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+  h2 .num{background:var(--accent);color:#1a1a1a;border-radius:8px;padding:2px 10px;font-size:.85rem;font-weight:700}
+  p.help{color:var(--muted);font-size:.85rem;margin-bottom:14px}
+  .hide{display:none!important}
+
+  .movies{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px}
+  .movie{background:var(--card2);border-radius:12px;overflow:hidden;cursor:pointer;transition:.2s;border:2px solid transparent;display:flex;flex-direction:column}
+  .movie:hover{transform:translateY(-3px);border-color:var(--accent)}
+  .movie:focus-visible{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(93,160,255,.3)}
+  .poster{height:240px;display:flex;align-items:center;justify-content:center;font-size:3rem;position:relative}
+  .poster .badge{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);color:var(--accent);font-size:.8rem;padding:4px 10px;border-radius:20px;font-weight:700}
+  .info{padding:14px;flex:1}
+  .info h3{font-size:1rem;margin-bottom:4px}
+  .info .meta{color:var(--muted);font-size:.8rem;margin-bottom:6px}
+
+  .chips{display:flex;flex-wrap:wrap;gap:10px}
+  .chip{background:var(--card2);border:1px solid var(--line);color:var(--text);padding:10px 18px;border-radius:10px;cursor:pointer;font-size:.95rem;transition:.15s}
+  .chip:hover{border-color:var(--accent)}
+  .chip:focus-visible{outline:none;box-shadow:0 0 0 2px var(--blue)}
+  .chip.active{background:var(--accent);color:#111;border-color:var(--accent);font-weight:700}
+  .showtime-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+
+  .legend{display:flex;flex-wrap:wrap;justify-content:center;gap:18px;margin:14px 0 18px;font-size:.85rem;color:var(--muted)}
+  .legend .dot{display:inline-block;width:16px;height:16px;border-radius:4px 4px 0 0;margin-right:6px;vertical-align:-3px}
+  .screen{width:80%;max-width:480px;height:16px;margin:8px auto 6px;background:linear-gradient(#fff,#4a5568);border-radius:50% 50% 0 0;opacity:.7}
+  .screen-label{text-align:center;color:var(--muted);font-size:.75rem;margin-bottom:18px;letter-spacing:3px}
+  .seat-grid{display:flex;flex-direction:column;gap:6px;align-items:center;user-select:none}
+  .row{display:flex;gap:6px;align-items:center}
+  .row-label{width:20px;color:var(--muted);font-size:.75rem;text-align:right}
+  .seat{width:34px;height:34px;border-radius:8px 8px 0 0;border:none;cursor:pointer;background:#39415f;transition:.15s;position:relative;color:#aab}
+  .seat:hover:not(.booked){background:#5561a0;transform:scale(1.1)}
+  .seat:focus-visible{outline:none;box-shadow:0 0 0 2px var(--blue)}
+  .seat.booked{background:#2a2a2a;cursor:not-allowed;color:#555}
+  .seat.selected{background:var(--accent);box-shadow:0 0 0 2px #fff, 0 0 12px var(--accent);color:#1a1a1a}
+
+  .summary{background:linear-gradient(90deg,#1c2140,#262c50);border:1px solid var(--line);border-radius:14px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-top:18px}
+  .summary .info-line{font-size:.95rem}
+  .summary .total{font-size:1.5rem;font-weight:800;color:var(--accent);line-height:1}
+  .summary .total small{display:block;font-size:.7rem;color:var(--muted);font-weight:500;margin-top:2px;letter-spacing:1px}
+
+  .btn{background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;color:#1a1a1a;font-weight:800;padding:12px 28px;border-radius:10px;cursor:pointer;font-size:1rem;transition:.15s}
+  .btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 14px rgba(245,185,66,.3)}
+  .btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(245,185,66,.5)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+  .btn.ghost:hover{border-color:var(--accent);color:var(--accent)}
+
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .form-grid .full{grid-column:1/-1}
+  label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:5px}
+  input,select{width:100%;padding:11px 14px;border-radius:8px;border:1px solid var(--line);background:var(--card2);color:var(--text);font-size:1rem}
+  input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(245,185,66,.2)}
+  input.invalid{border-color:var(--red);box-shadow:0 0 0 3px rgba(231,76,60,.15)}
+  .err{color:var(--red);font-size:.78rem;margin-top:4px;min-height:1em}
+  .recap{background:var(--card2);border-radius:10px;padding:16px;margin-bottom:18px;font-size:.92rem}
+  .recap .row-mini{display:flex;justify-content:space-between;padding:4px 0}
+  .recap .row-mini.total{border-top:1px solid var(--line);margin-top:8px;padding-top:10px;font-weight:700}
+  .recap .row-mini.total b{color:var(--accent)}
+
+  .ticket{max-width:440px;margin:24px auto;background:var(--card);border-radius:16px;overflow:hidden;border:1px dashed var(--accent);animation:pop .4s ease}
+  @keyframes pop{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+  .ticket .top{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#1a1a1a;padding:22px;text-align:center;font-weight:800;font-size:1.2rem}
+  .ticket .body{padding:24px;text-align:center}
+  .ticket .body h3{font-size:1.3rem;margin-bottom:4px}
+  .ticket .body .bid{font-family:'Courier New',monospace;font-size:1rem;letter-spacing:3px;color:var(--accent);background:#f5b94222;padding:6px 14px;border-radius:8px;display:inline-block;margin:10px 0;border:1px dashed var(--accent)}
+  .ticket .body .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;margin:14px 0;text-align:left;font-size:.85rem}
+  .ticket .body .grid2 div span{color:var(--muted);display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:1px}
+  .ticket .body .qr{width:90px;height:90px;background:repeating-linear-gradient(45deg,#000 0,#000 4px,#fff 4px,#fff 8px);margin:14px auto;border-radius:6px}
+  .ticket .body .ok{color:var(--green);margin-top:8px;font-size:.85rem}
+
+  @media (max-width:620px){
+    .form-grid{grid-template-columns:1fr}
+    .seat{width:28px;height:28px}
+    .row{gap:4px}
+    header{padding:12px 16px}
+    main{padding:18px 14px}
+  }
+  @media (max-width:380px){
+    .seat{width:24px;height:24px;font-size:.7rem}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎬 <span>Cine</span>Book</h1>
+  <nav class="breadcrumb" aria-label="Booking progress">
+    <span class="crumb active" data-step="1">1 Movie</span>
+    <span class="sep">›</span>
+    <span class="crumb" data-step="2">2 Showtime</span>
+    <span class="sep">›</span>
+    <span class="crumb" data-step="3">3 Seats</span>
+    <span class="sep">›</span>
+    <span class="crumb" data-step="4">4 Pay</span>
+  </nav>
+</header>
+
+<main>
+  <section id="movie-panel" class="panel" aria-label="Choose a movie">
+    <h2><span class="num">1</span> Choose a Movie</h2>
+    <p class="help">Click a card to see showtimes. Use <kbd>Tab</kbd> + <kbd>Enter</kbd> for keyboard navigation.</p>
+    <div class="movies" id="movie-list" role="list"></div>
+  </section>
+
+  <section id="showtime-panel" class="panel hide" aria-label="Pick a showtime">
+    <button class="btn ghost" style="margin-bottom:16px;padding:6px 14px;font-size:.85rem" onclick="goTo(1)">← Back to movies</button>
+    <h2><span class="num">2</span> Pick a Showtime</h2>
+    <p class="help" id="st-help">Select a date and time for <b id="st-movie"></b>.</p>
+    <h3 style="font-size:.95rem;margin:18px 0 8px;color:var(--muted)">Date</h3>
+    <div class="chips" id="dates" role="group" aria-label="Dates"></div>
+    <h3 style="font-size:.95rem;margin:20px 0 8px;color:var(--muted)">Time</h3>
+    <div class="showtime-grid" id="times" role="group" aria-label="Showtimes"></div>
+  </section>
+
+  <section id="seat-panel" class="panel hide" aria-label="Select seats">
+    <button class="btn ghost" style="margin-bottom:16px;padding:6px 14px;font-size:.85rem" onclick="goTo(2)">← Back to showtimes</button>
+    <h2><span class="num">3</span> Select Your Seats</h2>
+    <p class="help" id="seat-help">Tap any <b style="color:var(--muted)">gray</b> seat. Sold-out seats are <b style="color:#555">dark gray</b>.</p>
+    <div class="screen" aria-hidden="true"></div>
+    <div class="screen-label">SCREEN</div>
+    <div class="seat-grid" id="seat-grid" role="grid" aria-label="Seat map"></div>
+    <div class="legend" aria-hidden="true">
+      <span><span class="dot" style="background:#39415f"></span>Available</span>
+      <span><span class="dot" style="background:var(--accent)"></span>Selected</span>
+      <span><span class="dot" style="background:#2a2a2a"></span>Booked</span>
+    </div>
+    <div class="summary" aria-live="polite">
+      <div>
+        <div class="info-line" id="sel-info">No seats selected yet</div>
+        <small style="color:var(--muted);font-size:.75rem" id="sel-detail">Pick the seats you'd like to reserve.</small>
+      </div>
+      <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+        <div class="total" id="total">₹0<small>TOTAL</small></div>
+        <button class="btn" id="pay-btn" disabled onclick="goTo(4)">Proceed to Pay →</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="pay-panel" class="panel hide" aria-label="Checkout">
+    <button class="btn ghost" style="margin-bottom:16px;padding:6px 14px;font-size:.85rem" onclick="goTo(3)">← Back to seats</button>
+    <h2><span class="num">4</span> Confirm & Pay</h2>
+    <div class="recap" id="recap"></div>
+    <form id="pay-form" novalidate>
+      <div class="form-grid">
+        <div class="full">
+          <label for="f-name">Full Name</label>
+          <input id="f-name" type="text" placeholder="Jane Doe" autocomplete="name" required>
+          <div class="err" id="e-name"></div>
+        </div>
+        <div>
+          <label for="f-email">Email</label>
+          <input id="f-email" type="email" placeholder="jane@mail.com" autocomplete="email" required>
+          <div class="err" id="e-email"></div>
+        </div>
+        <div>
+          <label for="f-phone">Phone (10 digits)</label>
+          <input id="f-phone" type="tel" inputmode="numeric" placeholder="9876543210" maxlength="10" autocomplete="tel" required>
+          <div class="err" id="e-phone"></div>
+        </div>
+        <div class="full">
+          <label for="f-pay">Payment Method</label>
+          <select id="f-pay">
+            <option>Credit Card</option>
+            <option>Debit Card</option>
+            <option>UPI</option>
+            <option>Net Banking</option>
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="btn" style="margin-top:18px;width:100%;padding:14px">Confirm & Pay ₹<span id="pay-amt">0</span></button>
+    </form>
+  </section>
+
+  <section id="done-panel" class="hide" aria-label="Booking confirmed">
+    <div class="ticket" role="status" aria-live="polite">
+      <div class="top">🎟 BOOKING CONFIRMED</div>
+      <div class="body" id="ticket-body"></div>
+    </div>
+    <div style="text-align:center;margin-top:18px">
+      <button class="btn" onclick="resetAll()">Book Another Movie</button>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+const MOVIES = [
+  {t:"Neon Horizon",        g:"Sci-Fi · Action",    r:"8.7", p:"🚀", c:"#3b2a5a", price:280},
+  {t:"The Last Laugh",      g:"Comedy · Romance",  r:"7.9", p:"😂", c:"#5a3b2a", price:200},
+  {t:"Midnight Protocol",   g:"Thriller · Crime",  r:"8.2", p:"🕵️", c:"#1f3b4d", price:240},
+  {t:"Ocean of Stars",      g:"Romance · Drama",   r:"8.9", p:"💫", c:"#4d1f3b", price:300},
+  {t:"Iron Valley",         g:"Action · Adventure",r:"8.0", p:"⚔️", c:"#3d3d3d", price:260},
+  {t:"Paper Wings",         g:"Drama · Indie",     r:"7.5", p:"🕊️", c:"#2a4d3b", price:180}
+];
+const DATES = ["Today","Tomorrow","Sat, 26 Sep","Sun, 27 Sep"];
+const TIMES = [
+  {label:"10:30 AM", tag:"Morning"},
+  {label:"01:45 PM", tag:"Matinee"},
+  {label:"06:15 PM", tag:"Evening"},
+  {label:"09:30 PM", tag:"Night"}
+];
+const ROWS = 6, COLS = 10, ROW_LBL = ["A","B","C","D","E","F"];
+
+let booked = [];
+let s = {movie:null, date:0, time:null, seats:[]};
+
+function seed(m,d,t){
+  let h=0; const str=MOVIES[m].t+"|"+d+"|"+t;
+  for(const c of str) h=(h*31+c.charCodeAt(0))&0x7fffffff;
+  booked = [];
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    h=(h*1103515245+12345)&0x7fffffff;
+    if((h>>>16)/65535 < 0.28) booked.push(r+"-"+c);
+  }
+}
+
+function paintCrumbs(step){
+  document.querySelectorAll(".crumb").forEach((el,i)=>{
+    el.classList.remove("active","done");
+    if(i+1===step) el.classList.add("active");
+    else if(i+1<step) el.classList.add("done");
+  });
+}
+
+function goTo(step){
+  ["movie","showtime","seat","pay","done"].forEach((n,i)=>{
+    document.getElementById(n+"-panel").classList.toggle("hide", i!==step-1);
+  });
+  paintCrumbs(step);
+  window.scrollTo({top:0, behavior:"smooth"});
+  if(step===4) hydrateRecap();
+  document.querySelector("main").focus({preventScroll:true});
+}
+
+function renderMovies(){
+  const root = document.getElementById("movie-list");
+  root.innerHTML = MOVIES.map((m,i)=>`
+    <article class="movie" role="listitem" tabindex="0"
+             aria-label="Book tickets for ${m.t}, rated ${m.r}, rupees ${m.price} per seat"
+             onclick="pickMovie(${i})"
+             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();pickMovie(${i})}">
+      <div class="poster" style="background:linear-gradient(135deg,${m.c},#000)">
+        <span aria-hidden="true">${m.p}</span>
+        <span class="badge">★ ${m.r}</span>
+      </div>
+      <div class="info">
+        <h3>${m.t}</h3>
+        <div class="meta">${m.g} · ₹${m.price}/seat</div>
+      </div>
+    </article>`).join("");
+}
+
+function pickMovie(i){
+  s.movie=i; s.date=0; s.time=null; s.seats=[];
+  document.getElementById("st-movie").textContent = MOVIES[i].t;
+  renderDates(); renderTimes();
+  goTo(2);
+}
+
+function renderDates(){
+  document.getElementById("dates").innerHTML = DATES.map((d,i)=>
+    `<button class="chip ${i===s.date?'active':''}" onclick="pickDate(${i})" aria-pressed="${i===s.date}">${d}</button>`
+  ).join("");
+}
+function pickDate(i){ s.date=i; renderDates(); renderTimes(); }
+
+function renderTimes(){
+  document.getElementById("times").innerHTML = TIMES.map((t,i)=>
+    `<button class="chip ${s.time===i?'active':''}" onclick="pickTime(${i})" aria-pressed="${s.time===i}">
+       <div style="font-weight:700">${t.label}</div>
+       <div style="font-size:.7rem;opacity:.7">${t.tag} · Screen ${i+1}</div>
+     </button>`
+  ).join("");
+}
+function pickTime(i){
+  s.time=i; s.seats=[];
+  seed(s.movie, s.date, i);
+  renderSeats(); updateSummary();
+  goTo(3);
+}
+
+function renderSeats(){
+  let html = "";
+  for(let r=0;r<ROWS;r++){
+    html += `<div class="row"><span class="row-label">${ROW_LBL[r]}</span>`;
+    for(let c=0;c<COLS;c++){
+      const id = r+"-"+c;
+      const isBooked = booked.includes(id);
+      const isSel    = s.seats.includes(id);
+      const lbl = "Row "+ROW_LBL[r]+", seat "+(c+1)+(isBooked?", sold out":isSel?", selected":"");
+      html += `<button class="seat ${isBooked?'booked':''} ${isSel?'selected':''}"
+                tabindex="${isBooked?-1:0}"
+                role="gridcell"
+                aria-label="${lbl}"
+                aria-pressed="${isSel}"
+                aria-disabled="${isBooked}"
+                ${isBooked?'':`onclick="toggleSeat('${id}')"`}>${c+1}</button>`;
+    }
+    html += "</div>";
+  }
+  document.getElementById("seat-grid").innerHTML = html;
+}
+
+function toggleSeat(id){
+  const i = s.seats.indexOf(id);
+  if(i>=0) s.seats.splice(i,1);
+  else if(s.seats.length<8) s.seats.push(id);
+  renderSeats(); updateSummary();
+}
+
+function updateSummary(){
+  const n = s.seats.length, price = MOVIES[s.movie].price;
+  const info = document.getElementById("sel-info");
+  const det  = document.getElementById("sel-detail");
+  const tot  = document.getElementById("total");
+  if(!n){
+    info.textContent = "No seats selected yet";
+    det.textContent  = "Pick the seats you'd like to reserve.";
+  } else {
+    const seats = s.seats.map(id=>ROW_LBL[+id[0]]+(+id.split("-")[1]+1)).sort().join(", ");
+    info.innerHTML = `<b>${n}</b> seat${n>1?"s":""} · <span style="color:var(--accent)">${seats}</span>`;
+    det.textContent  = n<8 ? `You can pick up to ${8-n} more.` : "Maximum 8 seats reached.";
+  }
+  tot.textContent = "₹"+(n*price);
+  document.getElementById("pay-btn").disabled = !n;
+}
+
+function hydrateRecap(){
+  const m = MOVIES[s.movie], n = s.seats.length, p = m.price;
+  const seats = s.seats.map(id=>ROW_LBL[+id[0]]+(+id.split("-")[1]+1)).sort().join(", ");
+  document.getElementById("recap").innerHTML = `
+    <div class="row-mini"><span>Movie</span><b>${m.t}</b></div>
+    <div class="row-mini"><span>Show</span><b>${DATES[s.date]} · ${TIMES[s.time].label}</b></div>
+    <div class="row-mini"><span>Seats</span><b>${seats}</b></div>
+    <div class="row-mini"><span>Tickets</span><b>${n} × ₹${p}</b></div>
+    <div class="row-mini total"><span>Total</span><b>₹${n*p}</b></div>`;
+  document.getElementById("pay-amt").textContent = n*p;
+}
+
+const form = document.getElementById("pay-form");
+form.addEventListener("submit", e=>{
+  e.preventDefault();
+  const v = id=>document.getElementById(id);
+  const fields = [
+    {id:"f-name",  eid:"e-name",  ok: v("f-name").value.trim().length>=2, msg:"Please enter your full name"},
+    {id:"f-email", eid:"e-email", ok: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v("f-email").value), msg:"Enter a valid email"},
+    {id:"f-phone", eid:"e-phone", ok: /^\d{10}$/.test(v("f-phone").value), msg:"Enter a 10-digit phone"}
+  ];
+  let ok = true;
+  fields.forEach(f=>{
+    const inp = v(f.id), err = v(f.eid);
+    inp.classList.toggle("invalid", !f.ok);
+    err.textContent = f.ok ? "" : f.msg;
+    if(!f.ok){ ok=false; inp.focus(); }
+  });
+  if(!ok) return;
+
+  const bid = "CB"+Math.random().toString(36).slice(2,8).toUpperCase();
+  const m = MOVIES[s.movie], n = s.seats.length;
+  const seats = s.seats.map(id=>ROW_LBL[+id[0]]+(+id.split("-")[1]+1)).sort().join(", ");
+  document.getElementById("ticket-body").innerHTML = `
+    <h3>${m.t}</h3>
+    <div class="bid">${bid}</div>
+    <div class="grid2">
+      <div><span>Date</span><b>${DATES[s.date]}</b></div>
+      <div><span>Time</span><b>${TIMES[s.time].label}</b></div>
+      <div><span>Theater</span><b>Screen ${s.time+1}</b></div>
+      <div><span>Tickets</span><b>${n} × ₹${m.price}</b></div>
+      <div style="grid-column:1/-1"><span>Seats</span><b>${seats}</b></div>
+      <div style="grid-column:1/-1"><span>Customer</span><b>${v("f-name").value} · ${v("f-phone").value}</b></div>
+    </div>
+    <div class="qr" aria-hidden="true"></div>
+    <div class="ok">✓ Show this code at the cinema entrance</div>`;
+  goTo(5);
+});
+
+function resetAll(){
+  s = {movie:null,date:0,time:null,seats:[]};
+  renderMovies();
+  goTo(1);
+}
+
+function currentStep(){
+  if(!s.movie) return 1;
+  if(s.time===null) return 2;
+  if(!s.seats.length) return 3;
+  return 4;
+}
+document.querySelectorAll(".crumb").forEach(c=>{
+  const go = ()=>{ const st=+c.dataset.step; if(st<=currentStep()) goTo(st); };
+  c.addEventListener("click", go);
+  c.addEventListener("keydown", e=>{
+    if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); }
+  });
+});
+
+renderMovies();
+goTo(1);
+</script>
+</body>
+</html>
